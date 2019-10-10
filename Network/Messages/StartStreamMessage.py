@@ -1,7 +1,7 @@
 from Network.Messages.MessageWithResponse import MessageWithResponse
 from Network.TCPAudioInputStream import TCPAudioInputStream
 from Network.Messages.Message import Message
-from Audio.SystemAudio import SystemAudio
+from Audio.AudioInputStreamPyaudio import AudioInputStream
 import json
 import struct
 from Network.Messages.MessageWithResponse import MessageWithResponse
@@ -17,8 +17,7 @@ class StartStreamMessage(Message):
         self.stream_id = json_req['id']
 
     def get_stream(self):
-        sys_audio = SystemAudio()
-        astream = sys_audio.get_audio_stream(self.requested_device, self.stream_id)
+        astream = AudioInputStream(self.requested_device)
         return TCPAudioInputStream(astream, (self.received_address[0], self.requested_port))
 
     def get_response(self) -> (bytes, (str, int)):

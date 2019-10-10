@@ -1,6 +1,7 @@
 from Network.Messages.MessageWithResponse import MessageWithResponse
 from Network.Messages.Message import Message
-from Audio.SystemAudio import SystemAudio
+from Audio.AudioInputStreamPyaudio import AudioInputStream
+import pyaudio
 import json
 import struct
 
@@ -9,9 +10,12 @@ class InfoMessage(MessageWithResponse):
 
     def __init__(self, message_bytes: bytes, received_address: (str, int)):
         super().__init__(message_bytes, received_address)
-        audio_device_names = SystemAudio.get_mic_names()
+        names = []
+        for i in AudioInputStream.get_devices():
+            names.append(i['name'])
+        print(names)
         self.response_json = {
-            "devices": audio_device_names,
+            "devices": names,
             "functions": {}
         }
 
@@ -28,4 +32,5 @@ class InfoMessage(MessageWithResponse):
             print(e)
             return bytes("", 'utf-8')
 
+InfoMessage(b'000000000000000000000000000', ('',9))
 

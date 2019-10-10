@@ -1,12 +1,15 @@
-from Audio.AudioInputStream import AudioInputStream
+from Audio.AudioInputStreamPyaudio import AudioInputStream
 from threading import Thread
 from queue import Empty
 import socket
+import struct
+import wave
 
 class TCPAudioInputStream(Thread):
 
     def __init__(self, audio_stream: AudioInputStream, to_addr: (str, int)):
-        self.audio_stream = audio_stream.get_audio_queue()
+        self.audio_stream = audio_stream
+        self.audio_stream_queue = audio_stream.get_audio_queue()
         self.close_f = False
         self.to_addr = to_addr
 
@@ -21,10 +24,14 @@ class TCPAudioInputStream(Thread):
     def run(self):
         try:
             self.sockfd.connect(self.to_addr)
+
             while not self.close_f:
                 try:
-                    audio_data = self.audio_stream.get(timeout=1)
-                    self.sockfd.send(audio_data)
+                    audio_data = self.audio_stream_queue.get(timeout=1)
+                    #print(len(audio_data))
+                    for i in audio_data:
+                        message = struct.pack("!I", i)
+                        self.sockfd.send(message)
                 except Empty:
                     continue
         except Exception as e:
