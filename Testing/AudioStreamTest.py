@@ -49,7 +49,7 @@ Thread(target=receive_audio, args=(tcpsock, wavfile, )).start()
 Thread(target=recieve_udp, args=(udpsock,)).start()
 
 msgdict = json.dumps({"port": 44444,
-                      "device": "Loopback: PCM (hw:2,0)",
+                      "device": "CABLE Output (VB-Audio Virtual ",
                       "id": "1"})
 message = struct.pack("!hhI{}s".format(len(bytes(msgdict, 'utf-8'))),
                       3, len(bytes(msgdict, 'utf-8')), 4, bytes(msgdict, 'utf-8'))

@@ -11,7 +11,7 @@ class StartStreamMessage(Message):
 
     def __init__(self, message_bytes: bytes, received_address: (str, int)):
         super().__init__(message_bytes, received_address)
-        json_req = json.loads(self.body)
+        json_req = json.loads(str(self.body, 'utf-8'))
         self.requested_port = int(json_req['port'])
         self.requested_device = json_req['device']
         self.stream_id = json_req['id']

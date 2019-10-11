@@ -1,6 +1,7 @@
 from threading import Thread
 from queue import Queue
 import pyaudio
+import wave
 
 class AudioInputStream(Thread):
 
@@ -8,11 +9,16 @@ class AudioInputStream(Thread):
         self.p = pyaudio.PyAudio()
         self.device_index_map = self.create_name_index_map()
         self.close_flag = False
+        self.test_wav = wave.open('test_wav.wav', 'w')
+        self.test_wav.setnchannels(1)
+        self.test_wav.setframerate(44100)
+        self.test_wav.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt8))
+
         if self.device_index_map.get(mic) is not None:
             self.stream = self.p.open(format=pyaudio.paInt8,
                                       channels=1, rate=44100,
-                                      input=True, frames_per_buffer=1024,
-                                      input_device_index=self.device_index_map[mic])
+                                      input=True, frames_per_buffer=1024)
+                                      #input_device_index=self.device_index_map[mic])
             self.audio_bytes_queue = Queue()
             Thread.__init__(self)
             self.start()
@@ -21,9 +27,11 @@ class AudioInputStream(Thread):
 
     def run(self):
         print("Reading stream")
+        size = self.p.get_sample_size(pyaudio.paInt8)
         while not self.close_flag:
             data = self.stream.read(1024, exception_on_overflow = False)
             self.audio_bytes_queue.put(data)
+            self.test_wav.writeframes(data)
         self.stream.stop_stream()
         self.stream.close()
         self.p.terminate()
