@@ -1,6 +1,7 @@
 import soundcard as sc
 from threading import Thread
 from queue import Queue
+import numpy as np
 
 SAMPLERATE = 44100
 CHUNKSIZE = 16
@@ -22,7 +23,7 @@ class AudioInputStream(Thread):
         with self.mic.recorder(samplerate=SAMPLERATE) as mic:
             while not self.close_flag:
                 data = mic.record(numframes=CHUNKSIZE)
-                self.audio_bytes_queue.put(data)
+                self.audio_bytes_queue.put(np.short(data*32767))
 
     def close(self):
         self.close_flag = True

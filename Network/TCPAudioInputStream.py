@@ -24,6 +24,7 @@ class TCPAudioInputStream(Thread):
             while not self.close_f:
                 try:
                     audio_data = self.audio_stream.get(timeout=1)
+                    print("sending")
                     self.sockfd.send(audio_data)
                 except Empty:
                     continue
