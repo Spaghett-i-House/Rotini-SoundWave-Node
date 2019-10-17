@@ -3,7 +3,7 @@ from Network.Messages.Message import Message
 from Network.Messages.InfoMessage import InfoMessage
 from Network.Messages.MessageWithResponse import MessageWithResponse
 from Network.Messages.StartStreamMessage import StartStreamMessage
-
+from Network.rtpsoundsession import RTPSoundSession
 
 class UDPServer(object):
 
@@ -15,10 +15,10 @@ class UDPServer(object):
         self.sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sockfd.settimeout(1)
         self.close_f = False
-        self.streamMap = {}
+        self.sessionMap = {}
         print("Server has been initialized, listening on {}".format(port))
         #listen on socket
-        self.listen()
+        #self.listen()
 
     def listen(self):
         while not self.close_f:
@@ -46,7 +46,8 @@ class UDPServer(object):
         elif opcode == 3:
             # start stream
             msg = StartStreamMessage(msgBytes, address)
-            self.streamMap[msg.stream_id] = msg.get_stream()
+            (dataddr, controladdr, ssrc) = msg.get_data_tuple()
+            RTPSoundSession(dataddr, controladdr, ssrc, self.onSessionEndCallback)
         elif opcode == 4:
             # stop_stream
             return
@@ -57,3 +58,6 @@ class UDPServer(object):
             return msg.get_response()
         else:
             return None, None
+
+    def onSessionEndCallback(self, ssrc: int):
+        del self.sessionMap[ssrc]

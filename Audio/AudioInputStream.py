@@ -4,7 +4,7 @@ from queue import Queue
 import numpy as np
 
 SAMPLERATE = 44100
-CHUNKSIZE = 16
+CHUNKSIZE = 1024
 
 class AudioInputStream(Thread):
 

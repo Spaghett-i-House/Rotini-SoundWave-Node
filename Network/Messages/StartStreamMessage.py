@@ -12,16 +12,17 @@ class StartStreamMessage(Message):
     def __init__(self, message_bytes: bytes, received_address: (str, int)):
         super().__init__(message_bytes, received_address)
         json_req = json.loads(self.body)
-        self.requested_port = int(json_req['port'])
-        self.requested_device = json_req['device']
-        self.stream_id = json_req['id']
+        self.data_port = json_req['data_port']
+        self.command_port = json_req['command_port']
+        self.stream_id = json_req['sdrc']
+        self.audio_device = json_req['source']
 
-    def get_stream(self):
-        sys_audio = SystemAudio()
-        astream = sys_audio.get_audio_stream(self.requested_device, self.stream_id)
-        return TCPAudioInputStream(astream, (self.received_address[0], self.requested_port))
+    def get_data_tuple(self) -> ((str, int), (str, int), int):
+        return ((self.received_address[0], self.data_port),
+                (self.received_address[0], self.command_port),
+                self.stream_id)
 
-    def get_response(self) -> (bytes, (str, int)):
+    """def get_response(self) -> (bytes, (str, int)):
         try:
             body = json.dumps({})
             resp_bytes = struct.pack("!hhI{}s".format(len(body)),
@@ -32,5 +33,5 @@ class StartStreamMessage(Message):
             return resp_bytes, self.received_address
         except Exception as e:
             print(e)
-            return bytes("", 'utf-8')
+            return bytes("", 'utf-8')"""
 

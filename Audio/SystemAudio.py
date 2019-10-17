@@ -33,3 +33,5 @@ class SystemAudio(object):
         for i in sc.all_microphones(include_loopback=True):
             idlist.append(i.id)
         return idlist
+
+print(SystemAudio.get_mic_names())
