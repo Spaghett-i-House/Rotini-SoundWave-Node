@@ -9,6 +9,7 @@ import struct
 import wave
 import numpy as np
 import time
+import json
 
 DATA_PORT = 9577
 CONTROL_PORT = 9578
@@ -36,7 +37,7 @@ def listen_data_sock(sock: socket.socket):
             #print(len(message))
             recv_at = time.time() - float(1571300000.0)
             latenct = recv_at-msg.timestamp
-            #print("LATENCY:", latenct)
+            print("LATENCY:", latenct)
             #msg.print()
             mywav.writeframes(msg.data_bytes)
             arr = np.frombuffer(msg.data_bytes, dtype=np.short)/32767
@@ -68,5 +69,24 @@ sock_control.bind(("", CONTROL_PORT))
 Thread(target=listen_control_sock, args=(sock_control,)).start()
 Thread(target=listen_data_sock, args=(sock_data,)).start()
 
-rtpsesh = RTPSoundSession(("", DATA_PORT), ("", CONTROL_PORT), "alsa_input.pci-0000_00_1f.3.analog-stereo", 19274, 0, print)
+
+streamRequest = bytes(json.dumps({
+    "device": "",
+    "data_port": DATA_PORT,
+    "command_port": CONTROL_PORT,
+    "source": "",
+    "start_seq": 0,
+    "sdrc": 0,
+    "id": 1  # this is currently trivial
+}), 'utf-8')
+
+streamRequestBytes = struct.pack("!hhI{}s".format(len(streamRequest)),
+                                    3,
+                                    len(streamRequest),
+                                    1,
+                                    streamRequest)
+address = input("IPADDR:")
+port = int(input("PORT"))
+sock_data.sendto(streamRequestBytes,(address, port))
+#rtpsesh = RTPSoundSession(("129.161.36.62", DATA_PORT), ("129.161.36.62", CONTROL_PORT), "", 19274, 0, print)
 

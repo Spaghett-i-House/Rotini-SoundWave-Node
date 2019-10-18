@@ -2,3 +2,5 @@
 **.vscode**
 *.wav*
 **__pycache__**
+*__pycache__*
+*.egg*

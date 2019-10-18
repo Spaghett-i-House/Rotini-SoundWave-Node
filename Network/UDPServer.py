@@ -18,7 +18,7 @@ class UDPServer(object):
         self.sessionMap = {}
         print("Server has been initialized, listening on {}".format(port))
         #listen on socket
-        #self.listen()
+        self.listen()
 
     def listen(self):
         while not self.close_f:
@@ -47,7 +47,7 @@ class UDPServer(object):
             # start stream
             msg = StartStreamMessage(msgBytes, address)
             (dataddr, controladdr, ssrc) = msg.get_data_tuple()
-            RTPSoundSession(dataddr, controladdr, ssrc, self.onSessionEndCallback)
+            RTPSoundSession(dataddr, controladdr,msg.audio_device, ssrc, 0, self.onSessionEndCallback)
         elif opcode == 4:
             # stop_stream
             return
