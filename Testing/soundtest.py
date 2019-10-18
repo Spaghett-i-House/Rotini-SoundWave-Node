@@ -6,6 +6,7 @@ speakers = sc.all_speakers()
 default_speaker = sc.default_speaker()
 # get a list of all microphones:
 mics = sc.all_microphones()
+print(mics[0].id)
 # get the current default microphone on your system:
 default_mic = sc.default_microphone()
 # record and play back one second of audio:

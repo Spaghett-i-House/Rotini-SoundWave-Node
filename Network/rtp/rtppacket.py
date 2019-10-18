@@ -25,7 +25,7 @@ class RTPPacket(object):
         self.marker = marker
         self.payload_type = payload_type
         self.sequence_number = sequence_number
-        self.timestamp = int(timestamp)
+        self.timestamp = timestamp
         self.ssrc = ssrc
         self.csrc_list = csrc_list
         self.csrc_len = len(csrc_list)
@@ -47,18 +47,18 @@ class RTPPacket(object):
         byte_2 = (self.marker << 7) | self.payload_type
         if self.csrc_len == 0:
             if self.data_bytes is None:
-                return struct.pack("!BBhII", byte_1, byte_2, self.sequence_number,
+                return struct.pack("!BBhfI", byte_1, byte_2, self.sequence_number,
                                    self.timestamp, self.ssrc)
             else:
-                return struct.pack("!BBhII{}b".format(len(self.data_bytes)), byte_1, byte_2, self.sequence_number,
+                return struct.pack("!BBhfI{}b".format(len(self.data_bytes)), byte_1, byte_2, self.sequence_number,
                                    self.timestamp, self.ssrc, self.data_bytes)
         else:
             if self.data_bytes is None:
-                return struct.pack("!BBhII{}I".format(self.csrc_len), byte_1, byte_2, self.sequence_number,
+                return struct.pack("!BBhfI{}I".format(self.csrc_len), byte_1, byte_2, self.sequence_number,
                                    self.timestamp, self.ssrc, *self.csrc_list)
             else:
                #self.print()
-                return struct.pack("!BBhII{}I{}s".format(self.csrc_len, len(self.data_bytes)),
+                return struct.pack("!BBhfI{}I{}s".format(self.csrc_len, len(self.data_bytes)),
                                    byte_1,
                                    byte_2,
                                    self.sequence_number,
@@ -74,7 +74,6 @@ class RTPPacket(object):
         - padding: {}
         - extension: {}
         - marker: {}
-        - timestamp: {}
         - ssrc: {}
         """.format(self.version,
                    self.padding,
@@ -82,10 +81,10 @@ class RTPPacket(object):
                    self.marker,
                    self.payload_type,
                    self.sequence_number,
-                   self.timestamp,
                    self.ssrc), end="")
-        print("- csrc-l", self.csrc_list)
-        print("- data", self.data_bytes)
+        print("- timestamp:", self.timestamp)
+        print("     - csrc-l", self.csrc_list)
+        print("     - data", self.data_bytes)
 
 
 def decode_rtp(message: bytes) -> RTPPacket:
@@ -112,12 +111,12 @@ def decode_rtp(message: bytes) -> RTPPacket:
     # csrc list 32 bits each from csrccount
     data_length = len(rest_of_header) - 10 - csrccount*4
     if csrccount > 0:
-        (seq_num, timestamp, ssrc, csrc_list, data) = struct.unpack('!hII{}I{}s'.format(csrccount, data_length),
+        (seq_num, timestamp, ssrc, csrc_list, data) = struct.unpack('!hfI{}I{}s'.format(csrccount, data_length),
                                                                     rest_of_header)
         if csrccount == 1:
             csrc_list = [csrc_list]
     else:
-        (seq_num, timestamp, ssrc, data) = struct.unpack('!hII{}s'.format(data_length), rest_of_header)
+        (seq_num, timestamp, ssrc, data) = struct.unpack('!hfI{}s'.format(data_length), rest_of_header)
         csrc_list = []
     new_rtp_packet = RTPPacket(version=version, padding=padding, extension=extension, marker=marker,
                                payload_type=payload_type, sequence_number=seq_num, timestamp=timestamp,

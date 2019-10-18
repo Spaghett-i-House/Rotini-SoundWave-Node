@@ -8,6 +8,7 @@ from threading import Thread
 import struct
 import wave
 import numpy as np
+import time
 
 DATA_PORT = 9577
 CONTROL_PORT = 9578
@@ -28,12 +29,14 @@ mics = sc.all_microphones()
 default_mic = sc.default_microphone()
 
 def listen_data_sock(sock: socket.socket):
-    with default_mic.recorder(samplerate=48000) as mic, \
-            default_speaker.player(samplerate=48000) as sp:
+    with default_speaker.player(samplerate=44100) as sp:
         while True:
             message, sender = sock.recvfrom(15000)
             msg = decode_rtp(message)
             #print(len(message))
+            recv_at = time.time() - float(1571300000.0)
+            latenct = recv_at-msg.timestamp
+            #print("LATENCY:", latenct)
             #msg.print()
             mywav.writeframes(msg.data_bytes)
             arr = np.frombuffer(msg.data_bytes, dtype=np.short)/32767
@@ -65,5 +68,5 @@ sock_control.bind(("", CONTROL_PORT))
 Thread(target=listen_control_sock, args=(sock_control,)).start()
 Thread(target=listen_data_sock, args=(sock_data,)).start()
 
-rtpsesh = RTPSoundSession(("localhost", DATA_PORT), ("localhost", CONTROL_PORT), "alsa_input.pci-0000_00_1f.3.analog-stereo", 19274, print)
+rtpsesh = RTPSoundSession(("", DATA_PORT), ("", CONTROL_PORT), "alsa_input.pci-0000_00_1f.3.analog-stereo", 19274, 0, print)
 

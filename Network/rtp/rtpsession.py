@@ -9,12 +9,14 @@ import wave
 
 class RTPSession(object):
 
-    def __init__(self, data_addr: (str, int), control_addr: (str, int), sessionID: int, onEndCallback: callable):
+    def __init__(self, data_addr: (str, int), control_addr: (str, int), sessionID: int,
+                 start_sequence_number, onEndCallback: callable):
         self.close_flag = False
         self.session_id = sessionID
         self.data_addr = data_addr
         self.control_addr = control_addr
         self.onEndCallback = onEndCallback
+        self.sequence_number = start_sequence_number
 
         self.controlfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         self.controlfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -73,17 +75,18 @@ class RTPSession(object):
     def send_stream(self):
         while not self.close_flag:
             try:
-                (rtpdata, csrc, datatype) = self.rtp_data_queue.get(timeout=1)
-                rtp_packet = RTPPacket(payload_type=datatype, sequence_number=0,
-                                       timestamp=time.time(), ssrc=self.session_id, csrc_list=[csrc])
-                rtp_packet.set_data_bytes(rtpdata)
+                (rtp_data, csrc, data_type, data_timestamp) = self.rtp_data_queue.get(timeout=1)
+                rtp_packet = RTPPacket(payload_type=data_type, sequence_number=self.sequence_number,
+                                       timestamp=data_timestamp, ssrc=self.session_id, csrc_list=[csrc])
+                rtp_packet.set_data_bytes(rtp_data)
+                self.sequence_number += 1
                 self.datafd.sendto(rtp_packet.serialize(), self.data_addr)
             except Empty:
                 #print("No audio data")
                 continue
 
-    def add_data_to_stream(self, data_bytes: bytes, data_csrc: int, data_type: RTPPayloadType):
-        self.rtp_data_queue.put((data_bytes, data_csrc, int(data_type.value[0])))
+    def add_data_to_stream(self, data_bytes: bytes, data_csrc: int, data_type: RTPPayloadType, data_timestamp: float):
+        self.rtp_data_queue.put((data_bytes, data_csrc, int(data_type.value[0]), data_timestamp))
 
     def close(self):
         # set close flag
