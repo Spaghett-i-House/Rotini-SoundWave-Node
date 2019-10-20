@@ -68,5 +68,5 @@ sock_control.bind(("", CONTROL_PORT))
 Thread(target=listen_control_sock, args=(sock_control,)).start()
 Thread(target=listen_data_sock, args=(sock_data,)).start()
 
-rtpsesh = RTPSoundSession(("", DATA_PORT), ("", CONTROL_PORT), "alsa_input.pci-0000_00_1f.3.analog-stereo", 19274, 0, print)
+rtpsesh = RTPSoundSession(("192.168.0.38", DATA_PORT), ("192.168.0.38", CONTROL_PORT), "", 19274, 0, print)
 

@@ -1,5 +1,9 @@
 import struct
-RTCPVERSION=2
+import enum
+
+
+RTCPVERSION = 2
+
 
 class RTCPPacket(object):
 
@@ -64,3 +68,11 @@ def decode_rtcp(message: bytes) -> RTCPPacket:
         data = message[8:]
         new_rtcp.add_data(data)
     return new_rtcp
+
+
+class RTCPPacketType(enum):
+    SENDER_REPORT = 0
+    RECEIVER_REPORT = 1
+    SOURCE_DESCRIPTION = 2
+    GOODBYE = 3
+    APP = 4
