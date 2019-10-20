@@ -7,7 +7,7 @@ import struct
 from Network.Messages.MessageWithResponse import MessageWithResponse
 
 
-class StartStreamMessage(Message):
+class StartStreamMessage(MessageWithResponse):
 
     def __init__(self, message_bytes: bytes, received_address: (str, int)):
         super().__init__(message_bytes, received_address)
@@ -16,6 +16,7 @@ class StartStreamMessage(Message):
         self.command_port = json_req['command_port']
         self.stream_id = json_req['sdrc']
         self.audio_device = json_req['source']
+        self.start_sequence = json_req['start_seq']
 
     def get_data_tuple(self) -> ((str, int), (str, int), int):
         return ((self.received_address[0], self.data_port),
