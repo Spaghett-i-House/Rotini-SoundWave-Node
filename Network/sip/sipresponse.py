@@ -2,7 +2,7 @@ from Network.sip.sipmessage import SIPMessage
 import enum
 
 
-class SIPCodes(enum):
+class SIPCodes:
     TRYING = "100"
     RINGING = "180"
     CALL_FORWARDING = "181"
@@ -16,17 +16,24 @@ class SIPCodes(enum):
     ALTERNATIVE_SERVICE = "380"
     #TODO Add all of them https://tools.ietf.org/html/rfc3261#section-21
 
+    @staticmethod
+    def from_string(stat_code):
+        for i in SIPCodes.__dict__:
+            if SIPCodes.__dict__[i] == stat_code:
+                return i
+        #print(method)
+
 
 class SIPResponse(SIPMessage):
 
     def __init__(self, sip_version: str, status_code: SIPCodes, reason_phrase: str, headers: dict):
         super().__init__(headers)
-        self.sip_version = sip_version
-        self.status_code = status_code
+        self.sip_version = str(sip_version)
+        self.status_code = str(status_code)
         self.reason_phrase = reason_phrase
 
     def serialize(self) -> bytes:
-        lines = self.sip_version + " " + self.status_code.value + " " + self.reason_phrase + "\r\n"
+        lines = self.sip_version + " " + self.status_code + " " + self.reason_phrase + "\r\n"
         for i in self.headers:
             lines += i + ":" + self.headers[i] + "\r\n"
 
@@ -36,14 +43,14 @@ class SIPResponse(SIPMessage):
     @staticmethod
     def from_string(message_string: str):
         message = SIPMessage.from_string(message_string)
-        components = message.start_line.split(" ")
+        components = message.first_line.split(" ")
         print("Components:", components)
         if len(components) < 3:
             raise(AssertionError("SIP Request should have at least 3 elements"))
         sip_version = components[0]
         status_code = components[1]
         reason_phrase = components[2]
-        return SIPResponse(sip_version, SIPCodes(status_code), reason_phrase, message.headers)
+        return SIPResponse(sip_version, SIPCodes.from_string(status_code), reason_phrase, message.headers)
 
     def print(self):
         print("""
