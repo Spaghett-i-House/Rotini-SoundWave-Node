@@ -7,53 +7,40 @@ SIPRequest: Parses the "start-line" of an sip request, stores each component
 """
 
 from socketserver import BaseRequestHandler
+from Network.sip.siprequest import SIPRequest
+from Network.sip.sipresponse import SIPCodes, SIPResponse
 
+SIP_VERSION = 2 # I DO not know
 
 class SIPRequestHandler(BaseRequestHandler):
 
     def handle(self):
-        self.data = self.request.recv(1024).strip()
-        print("{} wrote: {}".format(self.client_address[0], self.data))
-        (request_data, headers, body) = self.parse_sip_request(self.data.decode('utf-8'))
+        data = self.request.recv(1024).strip()
+        print("{} wrote: {}".format(self.client_address[0], data))
+        request_data = SIPRequest(data.decode('utf-8'))
+        request_data.print()
+        switch = {
+            "INVITE": (),
+            "ACK": (),
+            "CANCEL": (),
+            "OPTIONS": ()
+        }
+        function = switch.get(request_data.method,
+                              lambda: print("[WARNING], No request matches {}".format(request_data.method)))
+        f_return = function(request_data)
+
+    def on_invite(self, sip_request: SIPRequest):
+        #request header should share the ports my RTP is opening on
+
+        # send trying message
+        trying_response = SIPResponse(SIP_VERSION, SIPCodes.TRYING, "", {})
+        self.request.sendall(trying_response.serialize())
+        #TODO: Should ringing contain ports opened for this?
+        ringing_response = SIPResponse(SIP_VERSION, SIPCodes.RINGING, "", {})
+        self.request.sendall(ringing_response.serialize())
+        ok_response = SIPResponse(SIP_VERSION, SIPCodes.OK, "", {})
+        self.request.sendall(ok_response.serialize())
+        # open_ports
 
 
-class SIPRequest(object):
-    """
-    Request: A data storage object to parse and store data of request line
-    """
-    def __init__(self, request_line: str):
-        # format: Request-Line  =  Method SP Request-URI SP SIP-Version CRLF from rfc 3261 SIP
-        components = request_line.split(" ")
-        print("Components:", components)
-        if len(components) < 3:
-            raise(AssertionError("SIP Request should have at least 6 elements"))
-        self.method = components[0]
-        self.request_uri = components[1]
-        self.sip_version = components[2]
-
-
-def parse_sip_request(request_string: str) -> (SIPRequest, dict, str):
-    sections = request_string.split('\r\n')
-    start_line = sections[0]
-    headers = {}
-    index = 1
-    for i, line in enumerate(sections[1:]):
-        if line == "":
-            # found the empty line signaling end of headers
-            index += 1
-            break
-        else:
-            if line.find(":") >= 0:
-                split_header = line.split(":")
-                #print(split_header)
-                variable_name = split_header[0]
-                variable_val = split_header[1]
-                headers[variable_name] = variable_val
-        index += 1
-
-    body = "\r\n".join(sections[index:])
-    print("START-LINE:", start_line)
-    print("HEADERS:", headers)
-    print("Body:", body)
-    return SIPRequest(start_line), headers, body
 
