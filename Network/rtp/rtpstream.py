@@ -9,7 +9,7 @@ from Network.rtp.rtppacket import RTPPacket, RTPPayloadType, decode_rtp
 
 class RTPStream(object):
 
-    def __init__(self, remote_endpoint: (str, int), audio_resource: str = "", ssrc=0):
+    def __init__(self, remote_endpoint: (str, int), audio_resource: str = "", ssrc=0, is_receiver=False):
         # set control variables
         self.close_flag = False
         self.sequence_number = 0
@@ -19,8 +19,7 @@ class RTPStream(object):
         self.sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sockfd.bind(("", 0))
         # create audio device binding
-        audio_device = sc.get_microphone(audio_resource, include_loopback=True)
-        self.audio_stream = audio_device.recorder(samplerate=44100, channels=1, blocksize=1024)
+        self.audio_device = sc.get_microphone(audio_resource, include_loopback=True)
         # create variables to be externally accessed
         self.address = self.sockfd.getsockname()
         self.endpoint = remote_endpoint
@@ -28,21 +27,23 @@ class RTPStream(object):
         self.audio_out_queue = Queue(maxsize=5)  # setting maxsize allows us to skip bytes if we are too slow
         self.audio_in_queue = Queue(maxsize=5)
         # start threads for output
-        self.audio_output_thread = Thread(target=self.get_audio_thread)
+        if is_receiver is False:
+            self.audio_output_thread = Thread(target=self.get_audio_thread)
+            self.audio_output_thread.start()
         self.network_output_thread = Thread(target=self.send_audio_thread)
-        self.audio_output_thread.start()
         self.network_output_thread.start()
 
         # start threads for input (rtp is bidirectional)
-        self.audio_input_queue = Thread(target=self.read_incoming_packets_thread)
-        self.audio_input_queue.start()
+        self.audio_input_thread = Thread(target=self.read_incoming_packets_thread)
+        self.audio_input_thread.start()
 
         # TODO Class for rtp statistics
         # TODO change the input/output structure to take from input/output class rather than sounddevice directly
 
     def read_incoming_packets_thread(self):
+
         while not self.close_flag:
-            in_packet = self.sockfd.recvfrom()
+            in_packet, address = self.sockfd.recvfrom(16000)
             in_as_rtp = decode_rtp(in_packet)
             if in_as_rtp.payload_type == RTPPayloadType.SHORT:
                 data = np.frombuffer(in_as_rtp.data_bytes, dtype=np.short)
@@ -54,18 +55,19 @@ class RTPStream(object):
                 continue
 
     def get_audio_thread(self):
-        while not self.close_flag:
-            # create timestamp for audio
-            timestamp = time.time() - float(1571300000.0)  # make the timestamp convertable to a float32
-            # get bytes from audio device
-            audio = self.audio_stream.record(numframes=1024)
-            # audio is recorded as a np.float32 from -1 to 1, we want this to be a short
-            audio_as_short = np.short(audio*32767)
-            try:
-                self.audio_out_queue.put((audio_as_short, timestamp))
-            except Full as e:
-                print("[WARNING] Audio queue overflow")
-                continue
+        with self.audio_device.recorder(samplerate=44100, channels=1) as audio_stream:
+            while not self.close_flag:
+                # create timestamp for audio
+                timestamp = time.time() - float(1571300000.0)  # make the timestamp convertable to a float32
+                # get bytes from audio device
+                audio = audio_stream.record(numframes=1024)
+                # audio is recorded as a np.float32 from -1 to 1, we want this to be a short
+                audio_as_short = np.short(audio*32767)
+                try:
+                    self.audio_out_queue.put((audio_as_short, timestamp))
+                except Full as e:
+                    print("[WARNING] Audio queue overflow")
+                    continue
 
     def send_audio_thread(self):
         while not self.close_flag:
@@ -75,7 +77,7 @@ class RTPStream(object):
                 audio_short_as_bytes = audio_as_short.tobytes()
                 # TODO csrc and ssrc need to be actual things
                 # create rtp packet
-                rtp_packet = RTPPacket(payload_type=RTPPayloadType.SHORT, sequence_number=self.sequence_number,
+                rtp_packet = RTPPacket(payload_type=RTPPayloadType.SHORT.value, sequence_number=self.sequence_number,
                                        timestamp=timestamp, ssrc=self.ssrc, csrc_list=[])
                 rtp_packet.set_data_bytes(audio_short_as_bytes)
                 # send packet

@@ -2,11 +2,12 @@ import socket
 from Network.sip.siprequest import SIPRequest, SIPMethod
 from Network.sip.sipresponse import SIPResponse, SIPCodes
 from Network.sdp.sdpmessage import SDPMessage
+from Network.rtp.rtpstream import RTPStream
 import time
 from queue import Queue
 from threading import Thread
-
-
+import socketserver
+import wave
 class Client(object):
 
     def __init__(self, ip, port):
@@ -19,10 +20,32 @@ class Client(object):
     def recv_thread(self):
         while True:
             data = self.sock.recv(1024).strip()
-            self.recv_queue.put(data)
+            if len(data) == 0:
+                print("Connection closed")
+                break
+
+            data = data.split("\r\n\r\n".encode('utf-8'))
+            for i in data:
+                self.recv_queue.put(i)
+
+    def audio_thread(self, audio_queue):
+        wave_file = wave.open("Session_test.wav", "w")
+        wave_file.setframerate(44100)
+        wave_file.setsampwidth(2)
+        wave_file.setnchannels(1)
+        while True:
+            data = audio_queue.get()
+            print(len(data))
+            wave_file.writeframes(data)
 
     def send_invite(self):
-        sdp = SDPMessage("v", "o", "s", "t", "m", "c")
+        rtp_receive = RTPStream(("", 0), is_receiver=True)
+        Thread(target=self.audio_thread, args=(rtp_receive.audio_in_queue,)).start()
+        (rtp_addr, rtp_port) = rtp_receive.get_address()
+        sdp = SDPMessage(v="2.0", o="gfvandehei IN IP4 "+rtp_addr, s="SDP Audio Stream",
+                         t=str(time.time())+" 0", m="audio "+str(rtp_port)+" RTP/AVP 0", c="IN IP4 localhost",
+                         a="device_name:")
+
         request = SIPRequest(SIPMethod.INVITE, "a", "2", {}, sdp.serialize().decode('utf-8'))
         self.sock.send(request.serialize())
         data = self.recv_queue.get()

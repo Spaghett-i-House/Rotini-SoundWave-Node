@@ -50,7 +50,7 @@ class RTPPacket(object):
                 return struct.pack("!BBhfI", byte_1, byte_2, self.sequence_number,
                                    self.timestamp, self.ssrc)
             else:
-                return struct.pack("!BBhfI{}b".format(len(self.data_bytes)), byte_1, byte_2, self.sequence_number,
+                return struct.pack("!BBhfI{}s".format(len(self.data_bytes)), byte_1, byte_2, self.sequence_number,
                                    self.timestamp, self.ssrc, self.data_bytes)
         else:
             if self.data_bytes is None:
@@ -92,6 +92,7 @@ def decode_rtp(message: bytes) -> RTPPacket:
     # padding 1 bit
     # extension 1 bit
     # csrccount 4 bits end of byte 1
+    #print(message)
     first_byte = message[0]
     version = (first_byte & 0b11000000) >> 6
     padding = (first_byte & 0b00100000) >> 5
@@ -126,9 +127,9 @@ def decode_rtp(message: bytes) -> RTPPacket:
 
 
 class RTPPayloadType(enum.Enum):
-    UINT8 = 0,
-    SHORT = 1,
-    INT32 = 2,
+    UINT8 = 0
+    SHORT = 1
+    INT32 = 2
     FLOAT32 = 3
 
 """rtppack = RTPPacket(padding=1, payload_type=10)

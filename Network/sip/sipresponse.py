@@ -14,6 +14,8 @@ class SIPCodes:
     MOVED_TEMPORARILY = "302"
     USE_PROXY = "305"
     ALTERNATIVE_SERVICE = "380"
+    SERVER_INTERNAL_ERROR = "500"
+    NOT_IMPLEMENTED = "501"
     #TODO Add all of them https://tools.ietf.org/html/rfc3261#section-21
 
     @staticmethod
